@@ -142,3 +142,15 @@ Al finalizar debe ser posible:
 - Tener visibilidad completa del sistema de seguimiento de talento
 
 **¿Puedes empezar por el paso 1, actualizando las variables de Terraform para incluir las configuraciones de Datadog necesarias?**
+
+# Paso 2
+
+Vamos con el paso 2
+
+# Pregunto por las api keys de DD
+
+necesito usar datadog_app_key o con datadog_api_key sería suficiente?
+
+# Terraform validate
+
+necesito usar datafog_app_key o con datadog_api_key sería suficiente?

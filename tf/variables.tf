@@ -34,6 +34,16 @@ variable "datadog_api_key" {
   }
 }
 
+variable "datadog_app_key" {
+  description = "Application Key de Datadog para operaciones avanzadas"
+  type        = string
+  sensitive   = true
+  validation {
+    condition     = length(var.datadog_app_key) > 0
+    error_message = "La Application Key de Datadog no puede estar vacía."
+  }
+}
+
 variable "datadog_api_url" {
   description = "URL del API de Datadog"
   type        = string
