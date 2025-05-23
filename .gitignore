@@ -6,7 +6,7 @@
 **/prompts_master.md
 
 **/.terraform/
-**/.terraform.lock.hcl  
+**/.terraform.lock.hcl
 
 # other dependencies
 **/.pnp
@@ -29,3 +29,39 @@ yarn-error.log*
 .vscode
 
 # .env
+
+# ==============================================================================
+# TERRAFORM Y DATADOG - ARCHIVOS SENSIBLES
+# ==============================================================================
+
+# Archivos de variables con credenciales reales
+**/terraform.tfvars
+**/terraform.tfvars.json
+**/*.auto.tfvars
+**/*.auto.tfvars.json
+
+# Estados de Terraform con información sensible
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.tfstate.lock.info
+
+# Archivos de configuración local
+**/.terraformrc
+**/terraform.rc
+
+# Archivos temporales de Terraform
+**/override.tf
+**/override.tf.json
+**/*_override.tf
+**/*_override.tf.json
+
+# Logs de Terraform
+**/terraform.log
+
+# Directorio de crash logs
+**/crash.log
+**/crash.*.log
+
+# Archivos de configuración de Datadog con API keys
+**/datadog.conf
+**/.datadog-ci.json

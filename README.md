@@ -19,6 +19,12 @@ Este proyecto es una aplicación full-stack con un frontend en React y un backen
   - `src/`: Contiene el código fuente para el frontend.
   - `public/`: Contiene archivos estáticos como el archivo HTML e imágenes.
   - `build/`: Contiene la construcción lista para producción del frontend.
+- `tf/`: Contiene la infraestructura como código usando Terraform.
+  - `variables.tf`: Variables de configuración para Terraform y Datadog.
+  - `provider.tf`: Configuración de proveedores (AWS, Datadog).
+  - `ec2.tf`: Configuración de instancias EC2.
+  - `datadog.tf`: Configuración de monitorización con Datadog.
+  - `scripts/`: Scripts de inicialización para instancias EC2.
 - `.env`: Contiene las variables de entorno.
 - `docker-compose.yml`: Contiene la configuración de Docker Compose para gestionar los servicios de tu aplicación.
 - `README.md`: Este archivo, contiene información sobre el proyecto e instrucciones sobre cómo ejecutarlo.
@@ -50,13 +56,13 @@ Las especificaciones de todos los endpoints de API los tienes en [api-spec.yaml]
 
 La descripción y diagrama del modelo de datos los tienes en [ModeloDatos.md](./backend/ModeloDatos.md).
 
-
 ## Primeros Pasos
 
 Para comenzar con este proyecto, sigue estos pasos:
 
 1. Clona el repositorio.
 2. Instala las dependencias para el frontend y el backend:
+
 ```sh
 cd frontend
 npm install
@@ -64,22 +70,30 @@ npm install
 cd ../backend
 npm install
 ```
+
 3. Construye el servidor backend:
+
 ```
 cd backend
 npm run build
-````
+```
+
 4. Inicia el servidor backend:
+
 ```
 cd backend
 npm start
 ```
+
 5. En una nueva ventana de terminal, construye el servidor frontend:
+
 ```
 cd frontend
 npm run build
 ```
+
 6. Inicia el servidor frontend:
+
 ```
 cd frontend
 npm start
@@ -94,21 +108,25 @@ Este proyecto usa Docker para ejecutar una base de datos PostgreSQL. Así es có
 Instala Docker en tu máquina si aún no lo has hecho. Puedes descargarlo desde aquí.
 Navega al directorio raíz del proyecto en tu terminal.
 Ejecuta el siguiente comando para iniciar el contenedor Docker:
+
 ```
 docker-compose up -d
 ```
+
 Esto iniciará una base de datos PostgreSQL en un contenedor Docker. La bandera -d corre el contenedor en modo separado, lo que significa que se ejecuta en segundo plano.
 
 Para acceder a la base de datos PostgreSQL, puedes usar cualquier cliente PostgreSQL con los siguientes detalles de conexión:
- - Host: localhost
- - Port: 5432
- - User: postgres
- - Password: password
- - Database: mydatabase
+
+- Host: localhost
+- Port: 5432
+- User: postgres
+- Password: password
+- Database: mydatabase
 
 Por favor, reemplaza User, Password y Database con el usuario, la contraseña y el nombre de la base de datos reales especificados en tu archivo .env.
 
 Para detener el contenedor Docker, ejecuta el siguiente comando:
+
 ```
 docker-compose down
 ```
@@ -120,13 +138,14 @@ Para generar la base de datos utilizando Prisma, sigue estos pasos:
 2. Abre una terminal y navega al directorio del backend donde se encuentra el archivo `schema.prisma` y `seed.ts`.
 
 3. Ejecuta los siguientes comandos para generar la estructura de prisma, las migraciones a tu base de datos y poblarla con datos de ejemplo:
+
 ```
 npx prisma generate
 npx prisma migrate dev
 ts-node seed.ts
 ```
 
-Una vez has dado todos los pasos, deberías poder guardar nuevos candidatos, tanto via web, como via API, verlos en la base de datos y obtenerlos mediante GET por id. 
+Una vez has dado todos los pasos, deberías poder guardar nuevos candidatos, tanto via web, como via API, verlos en la base de datos y obtenerlos mediante GET por id.
 
 ```
 POST http://localhost:3010/candidates
@@ -160,3 +179,156 @@ POST http://localhost:3010/candidates
 }
 ```
 
+---
+
+## 📊 Monitorización con Datadog
+
+Este proyecto incluye integración completa con Datadog para monitorización de infraestructura y aplicaciones desplegadas en AWS usando Terraform.
+
+### ✅ Estado de Implementación
+
+**Paso 1 Completado**: Configuración de Variables Terraform para Datadog
+
+### Arquitectura de Monitorización
+
+La solución de monitorización implementa:
+
+- **Integración AWS-Datadog** para métricas de CloudWatch
+- **Agentes Datadog** instalados en instancias EC2 (backend y frontend)
+- **Dashboard personalizado** para visualización del Sistema LTI
+- **Alertas configurables** basadas en umbrales específicos del proyecto
+- **Recolección de logs** de aplicaciones Node.js y React
+
+### Configuración de Datadog
+
+#### Archivos de Configuración
+
+1. **`tf/variables.tf`** - Variables principales para Datadog:
+
+   - Credenciales de API (marcadas como sensibles)
+   - Configuración del agente Datadog
+   - Umbrales de monitorización específicos para LTI
+   - Tags organizados por servicio (backend/frontend)
+
+2. **`tf/terraform.tfvars.example`** - Plantilla de configuración segura:
+
+   - Ejemplo de configuración de credenciales
+   - Valores recomendados para el proyecto LTI
+   - Documentación sobre dónde obtener API keys
+
+3. **`.gitignore`** - Seguridad de credenciales:
+   - Exclusión de archivos `terraform.tfvars` con credenciales reales
+   - Protección de estados de Terraform sensibles
+
+#### Características de Seguridad Implementadas
+
+- **Variables Sensibles**: `datadog_api_key` y `datadog_app_key` marcadas como `sensitive = true`
+- **Validaciones**: Verificación de que las API keys no estén vacías
+- **Exclusiones Git**: Archivos con credenciales excluidos del control de versiones
+- **External ID**: Configuración para role seguro AWS-Datadog
+
+#### Variables Principales Configuradas
+
+```hcl
+# Credenciales (obligatorias)
+datadog_api_key                # API Key de Datadog
+datadog_app_key               # Application Key de Datadog
+
+# Configuración del agente
+datadog_agent_version         # Versión del agente (default: "latest")
+datadog_enable_logs          # Habilitar logs (default: true)
+datadog_enable_apm           # Habilitar APM (default: true)
+
+# Umbrales de alerta para LTI
+cpu_threshold_warning        # CPU warning (default: 70%)
+cpu_threshold_critical       # CPU crítico (default: 85%)
+memory_threshold_warning     # Memoria warning (default: 80%)
+memory_threshold_critical    # Memoria crítico (default: 90%)
+
+# Servicios monitoreados
+monitor_backend_service      # Nombre servicio backend: "lti-backend"
+monitor_frontend_service     # Nombre servicio frontend: "lti-frontend"
+```
+
+### Convenciones del Proyecto
+
+- **Naming**: Mantiene convención `lti-project-*` para consistencia
+- **Tagging**: Tags específicos para backend (`service:lti-backend`) y frontend (`service:lti-frontend`)
+- **Estructura**: Código modular y documentado por funcionalidad
+
+### Configuración Inicial Requerida
+
+Antes de continuar con los siguientes pasos, necesitas:
+
+1. **Obtener credenciales de Datadog**:
+
+   ```bash
+   # Visita: https://app.datadoghq.com/organization-settings/api-keys
+   # Obtén: API Key y Application Key
+   ```
+
+2. **Configurar variables**:
+
+   ```bash
+   cd tf/
+   cp terraform.tfvars.example terraform.tfvars
+   # Editar terraform.tfvars con tus credenciales reales
+   ```
+
+3. **Verificar configuración**:
+   ```bash
+   terraform validate
+   terraform plan
+   ```
+
+### Servicios AWS Monitoreados
+
+- **EC2**: Métricas de instancias backend y frontend
+- **CloudWatch**: Logs y métricas del sistema
+- **S3**: Métricas del bucket de código
+- **IAM**: Monitorización de roles y políticas
+
+### Próximos Pasos de Implementación
+
+- [ ] **Paso 2**: Configurar proveedor Datadog en `tf/provider.tf`
+- [ ] **Paso 3**: Crear integración AWS-Datadog en `tf/datadog.tf`
+- [ ] **Paso 4**: Instalar agentes Datadog en instancias EC2
+- [ ] **Paso 5**: Crear dashboard y alertas personalizadas
+- [ ] **Paso 6**: Documentar configuración final
+
+### Comandos Útiles
+
+```bash
+# Validar configuración de Terraform
+cd tf/
+terraform validate
+
+# Ver plan de despliegue
+terraform plan
+
+# Aplicar cambios (cuando esté listo)
+terraform apply
+
+# Ver estado actual
+terraform show
+```
+
+### Notas Importantes
+
+⚠️ **Seguridad**:
+
+- Las API keys de Datadog son **OBLIGATORIAS** y deben configurarse antes de continuar
+- El External ID debe ser único y compartido solo con Datadog
+- Nunca commit archivos `terraform.tfvars` con credenciales reales
+
+🔧 **Configuración**:
+
+- Los umbrales de alerta pueden ajustarse según necesidades específicas del LTI
+- La configuración actual soporta monitorización completa de la infraestructura AWS
+- Tags específicos permiten filtrado granular en Datadog
+
+📝 **Documentación**:
+
+- Todos los cambios se documentan en `prompts/datadog-aws-prompts.md`
+- Cada paso incluye verificación y validación
+- Se mantiene historial de implementación para referencia futura
