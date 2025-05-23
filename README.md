@@ -190,6 +190,7 @@ Este proyecto incluye integración completa con Datadog para monitorización de 
 - **Paso 1 ✅**: Configuración de Variables Terraform para Datadog
 - **Paso 2 ✅**: Configuración del Proveedor Datadog
 - **Paso 3 ✅**: Integración AWS-Datadog (Roles IAM, Políticas, Dashboard)
+- **Paso 4 ✅**: Instalación de Agentes Datadog en Instancias EC2
 
 ### Arquitectura de Monitorización
 
@@ -316,9 +317,27 @@ Se implementó la integración completa en `tf/datadog.tf` incluyendo:
 3. Usar External ID: `(output de terraform apply)`
 4. Account ID: `(output de terraform apply)`
 
+#### Paso 4: Instalación de Agentes Datadog ✅
+
+Se configuró la instalación automática de agentes Datadog en ambas instancias EC2:
+
+- **Scripts Modificados**:
+  - `tf/scripts/backend_user_data.sh` - Instalación para servidor backend
+  - `tf/scripts/frontend_user_data.sh` - Instalación para servidor frontend
+- **Configuración de Agentes**: Tags específicos por servicio (backend/frontend)
+- **Integración Docker**: Labels para contenedores con identificación de Datadog
+- **Variables EC2**: Todas las credenciales y configuraciones pasadas via templatefile
+
+**Características Implementadas:**
+
+- Instalación automática del agente al lanzar instancias
+- Tags específicos por rol (backend/frontend)
+- Habilitación de logs si está configurado
+- Labels de Docker para mejor identificación en Datadog
+- Reinicio automático de contenedores con `--restart unless-stopped`
+
 ### Próximos Pasos de Implementación
 
-- [ ] **Paso 4**: Instalar agentes Datadog en instancias EC2
 - [ ] **Paso 5**: Configurar logs y APM específicos del proyecto LTI
 - [ ] **Paso 6**: Documentar configuración final y verificar monitorización
 
