@@ -154,3 +154,7 @@ necesito usar datadog_app_key o con datadog_api_key sería suficiente?
 # Terraform validate
 
 necesito usar datafog_app_key o con datadog_api_key sería suficiente?
+
+# Paso 3
+
+Continuamos con el paso 3

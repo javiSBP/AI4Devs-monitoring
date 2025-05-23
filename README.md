@@ -187,7 +187,9 @@ Este proyecto incluye integración completa con Datadog para monitorización de 
 
 ### ✅ Estado de Implementación
 
-**Paso 1 Completado**: Configuración de Variables Terraform para Datadog
+- **Paso 1 ✅**: Configuración de Variables Terraform para Datadog
+- **Paso 2 ✅**: Configuración del Proveedor Datadog
+- **Paso 3 ✅**: Integración AWS-Datadog (Roles IAM, Políticas, Dashboard)
 
 ### Arquitectura de Monitorización
 
@@ -288,13 +290,37 @@ Antes de continuar con los siguientes pasos, necesitas:
 - **S3**: Métricas del bucket de código
 - **IAM**: Monitorización de roles y políticas
 
+### ✅ Pasos Completados
+
+#### Paso 1: Variables Terraform ✅
+
+Se configuraron todas las variables necesarias en `tf/variables.tf` con validaciones de seguridad.
+
+#### Paso 2: Proveedor Datadog ✅
+
+Se configuró el proveedor de Datadog v3.40+ en `tf/provider.tf` con autenticación por API keys.
+
+#### Paso 3: Integración AWS-Datadog ✅
+
+Se implementó la integración completa en `tf/datadog.tf` incluyendo:
+
+- **Política IAM**: Permisos para CloudWatch, EC2, S3, IAM (solo lectura)
+- **Role IAM**: Role con External ID que Datadog puede asumir
+- **Dashboard**: Panel de control con métricas de CPU y memoria
+- **Outputs**: ARN del role, External ID y URLs para configuración manual
+
+**Configuración Manual Requerida:**
+
+1. En Datadog → Integrations → AWS → Add AWS Account
+2. Usar Role ARN: `(output de terraform apply)`
+3. Usar External ID: `(output de terraform apply)`
+4. Account ID: `(output de terraform apply)`
+
 ### Próximos Pasos de Implementación
 
-- [ ] **Paso 2**: Configurar proveedor Datadog en `tf/provider.tf`
-- [ ] **Paso 3**: Crear integración AWS-Datadog en `tf/datadog.tf`
 - [ ] **Paso 4**: Instalar agentes Datadog en instancias EC2
-- [ ] **Paso 5**: Crear dashboard y alertas personalizadas
-- [ ] **Paso 6**: Documentar configuración final
+- [ ] **Paso 5**: Configurar logs y APM específicos del proyecto LTI
+- [ ] **Paso 6**: Documentar configuración final y verificar monitorización
 
 ### Comandos Útiles
 
