@@ -174,3 +174,23 @@ qué es lo que vas a hacer en el paso 6 exactamente? explícamelo antes de nada
 # Variables de AWS
 
 creo que antes de proceder, falta configurar las variables de AWS en local para ejecutar terraform plan y apply
+
+# Paso 6
+
+Ahora si, procede con el paso 6
+
+# Solución de problemas 1
+
+creo que el problema está en que los valores de @provider.tf no se corresponden totalmente con los de @terraform.tfvars , por ejemplo, falta datadog_api_url. Verifica que estén todas las variables necesarias en todos los ficheros de terraform
+
+# Solución de problemas 2
+
+he cambiado las API keys pero nada, diría que no es un problema con las appy keys
+
+# Solución de problemas 3
+
+añadir al chat las lineas de la terminal
+
+# Añadir ficheros al gitignore
+
+los ficheros zip y el terraform state deberían ir en el gitignore

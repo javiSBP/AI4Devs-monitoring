@@ -97,6 +97,10 @@ resource "datadog_dashboard" "lti_system_overview" {
   layout_type  = "ordered"
   is_read_only = false
 
+  tags = [
+    "team:${var.datadog_tags["team"]}"
+  ]
+
   widget {
     group_definition {
       title            = "Infraestructura EC2"
@@ -198,8 +202,6 @@ resource "datadog_dashboard" "lti_system_overview" {
       }
     }
   }
-
-  tags = [for k, v in var.datadog_tags : "${k}:${v}"]
 }
 
 # Monitor de CPU crítico

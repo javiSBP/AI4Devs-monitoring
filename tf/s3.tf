@@ -1,16 +1,24 @@
 resource "aws_s3_bucket" "code_bucket" {
-  bucket = "ai4devs-project-code-bucket"
+  bucket = "${var.project_name}-code-bucket-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   acl    = "private"
+
+  tags = var.datadog_tags
 }
 
 resource "null_resource" "generate_zip" {
-  provisioner "local-exec" {
-    command     = "cd .. && sh ./generar-zip.sh"
-    working_dir = path.module
+  triggers = {
+    always_run = timestamp()
   }
 
-  triggers = {
-    always_run = "${timestamp()}"
+  provisioner "local-exec" {
+    command     = <<EOT
+      Remove-Item -Path ./../backend.zip -ErrorAction SilentlyContinue
+      Remove-Item -Path ./../frontend.zip -ErrorAction SilentlyContinue
+      Compress-Archive -Path ./../backend/* -DestinationPath ./../backend.zip -Force
+      Compress-Archive -Path ./../frontend/* -DestinationPath ./../frontend.zip -Force
+    EOT
+    interpreter = ["PowerShell", "-Command"]
+    working_dir = path.module # Ensures paths are relative to the tf directory
   }
 }
 

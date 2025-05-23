@@ -593,3 +593,21 @@ terraform show
 - Todos los cambios se documentan en `README.md` (este archivo).
 - Cada paso incluye verificación y validación.
 - Se mantiene historial de implementación para referencia futura.
+
+### Problemas encontrados
+
+🔧 **Sin acceso a las AWS keys desde el panel de IA de Cursor**:
+
+- Los comandos `terraform plan` y `terraform apply` no funcionaban desde el panel de IA porque no tenía acceso a las variables de AWS configuradas.
+
+🔧 **Configuración de la URL de datadog**:
+
+- Por defecto la IA la ha configurado como https://api.datadoghq.com/ (región USA) cuando tenía que ser https://api.datadoghq.eu/ (región EU).
+
+🔧 **S3 bucket ya existe**:
+
+- Al ejecutar `terraform apply` daba el error BucketAlreadyExists pero realmente no lo tenía creado ni podía verlo en la consola de AWS. La IA ha decidido renombrar el bucjet usando un timestamp.
+
+🔧 **Definición de tags duplicada en el monitor de datadog**:
+
+- Seguramente entre modificaciones de la IA, se añadieron tags ya existenetes una segunda vez y producía un error.

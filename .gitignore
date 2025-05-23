@@ -65,3 +65,12 @@ yarn-error.log*
 # Archivos de configuración de Datadog con API keys
 **/datadog.conf
 **/.datadog-ci.json
+
+# ==============================================================================
+# ARCHIVOS GENERADOS
+# ==============================================================================
+
+# Archivos ZIP generados
+**/*.zip
+backend.zip
+frontend.zip
