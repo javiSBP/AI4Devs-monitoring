@@ -10,6 +10,7 @@ resource "aws_instance" "backend" {
     environment             = var.environment
     monitor_backend_service = var.monitor_backend_service
     datadog_enable_logs     = var.datadog_enable_logs
+    datadog_enable_apm      = var.datadog_enable_apm
   })
   vpc_security_group_ids = [aws_security_group.backend_sg.id]
 

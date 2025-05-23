@@ -73,73 +73,71 @@ npm install
 
 3. Construye el servidor backend:
 
-```
+```sh
 cd backend
 npm run build
 ```
 
 4. Inicia el servidor backend:
 
-```
+```sh
 cd backend
 npm start
 ```
 
 5. En una nueva ventana de terminal, construye el servidor frontend:
 
-```
+```sh
 cd frontend
 npm run build
 ```
 
 6. Inicia el servidor frontend:
 
-```
+```sh
 cd frontend
 npm start
 ```
 
-El servidor backend estará corriendo en http://localhost:3010 y el frontend estará disponible en http://localhost:3000.
+El servidor backend estará corriendo en `http://localhost:3010` y el frontend estará disponible en `http://localhost:3000`.
 
 ## Docker y PostgreSQL
 
 Este proyecto usa Docker para ejecutar una base de datos PostgreSQL. Así es cómo ponerlo en marcha:
 
-Instala Docker en tu máquina si aún no lo has hecho. Puedes descargarlo desde aquí.
-Navega al directorio raíz del proyecto en tu terminal.
-Ejecuta el siguiente comando para iniciar el contenedor Docker:
+1. Instala Docker en tu máquina si aún no lo has hecho. Puedes descargarlo desde [aquí](https://www.docker.com/get-started).
+2. Navega al directorio raíz del proyecto en tu terminal.
+3. Ejecuta el siguiente comando para iniciar el contenedor Docker:
 
-```
+```sh
 docker-compose up -d
 ```
 
-Esto iniciará una base de datos PostgreSQL en un contenedor Docker. La bandera -d corre el contenedor en modo separado, lo que significa que se ejecuta en segundo plano.
+Esto iniciará una base de datos PostgreSQL en un contenedor Docker. La bandera `-d` corre el contenedor en modo separado, lo que significa que se ejecuta en segundo plano.
 
 Para acceder a la base de datos PostgreSQL, puedes usar cualquier cliente PostgreSQL con los siguientes detalles de conexión:
 
-- Host: localhost
-- Port: 5432
-- User: postgres
-- Password: password
-- Database: mydatabase
+- **Host**: `localhost`
+- **Port**: `5432`
+- **User**: `postgres`
+- **Password**: `password`
+- **Database**: `mydatabase`
 
-Por favor, reemplaza User, Password y Database con el usuario, la contraseña y el nombre de la base de datos reales especificados en tu archivo .env.
+**Nota**: Por favor, reemplaza `User`, `Password` y `Database` con el usuario, la contraseña y el nombre de la base de datos reales especificados en tu archivo `.env`.
 
 Para detener el contenedor Docker, ejecuta el siguiente comando:
 
-```
+```sh
 docker-compose down
 ```
 
 Para generar la base de datos utilizando Prisma, sigue estos pasos:
 
 1. Asegúrate de que el archivo `.env` en el directorio raíz del backend contenga la variable `DATABASE_URL` con la cadena de conexión correcta a tu base de datos PostgreSQL. Si no te funciona, prueba a reemplazar la URL completa directamente en `schema.prisma`, en la variable `url`.
-
 2. Abre una terminal y navega al directorio del backend donde se encuentra el archivo `schema.prisma` y `seed.ts`.
-
 3. Ejecuta los siguientes comandos para generar la estructura de prisma, las migraciones a tu base de datos y poblarla con datos de ejemplo:
 
-```
+```sh
 npx prisma generate
 npx prisma migrate dev
 ts-node seed.ts
@@ -147,8 +145,12 @@ ts-node seed.ts
 
 Una vez has dado todos los pasos, deberías poder guardar nuevos candidatos, tanto via web, como via API, verlos en la base de datos y obtenerlos mediante GET por id.
 
-```
+**Ejemplo de Petición POST para crear un candidato**:
+
+```http
 POST http://localhost:3010/candidates
+Content-Type: application/json
+
 {
     "firstName": "Albert",
     "lastName": "Saelices",
@@ -191,105 +193,106 @@ Este proyecto incluye integración completa con Datadog para monitorización de 
 - **Paso 2 ✅**: Configuración del Proveedor Datadog
 - **Paso 3 ✅**: Integración AWS-Datadog (Roles IAM, Políticas, Dashboard)
 - **Paso 4 ✅**: Instalación de Agentes Datadog en Instancias EC2
+- **Paso 5 ✅**: Configuración de Logs y APM específicos del proyecto LTI
 
 ### Arquitectura de Monitorización
 
 La solución de monitorización implementa:
 
-- **Integración AWS-Datadog** para métricas de CloudWatch
-- **Agentes Datadog** instalados en instancias EC2 (backend y frontend)
-- **Dashboard personalizado** para visualización del Sistema LTI
-- **Alertas configurables** basadas en umbrales específicos del proyecto
-- **Recolección de logs** de aplicaciones Node.js y React
+- **Integración AWS-Datadog** para métricas de CloudWatch.
+- **Agentes Datadog** instalados en instancias EC2 (backend y frontend).
+- **Dashboard personalizado** para visualización del Sistema LTI.
+- **Alertas configurables** basadas en umbrales específicos del proyecto.
+- **Recolección de logs** de aplicaciones Node.js y React.
 
 ### Configuración de Datadog
 
 #### Archivos de Configuración
 
-1. **`tf/variables.tf`** - Variables principales para Datadog:
+1.  **`tf/variables.tf`** - Variables principales para Datadog:
 
-   - Credenciales de API (marcadas como sensibles)
-   - Configuración del agente Datadog
-   - Umbrales de monitorización específicos para LTI
-   - Tags organizados por servicio (backend/frontend)
+    - Credenciales de API (marcadas como sensibles)
+    - Configuración del agente Datadog
+    - Umbrales de monitorización específicos para LTI
+    - Tags organizados por servicio (backend/frontend)
 
-2. **`tf/terraform.tfvars.example`** - Plantilla de configuración segura:
+2.  **`tf/terraform.tfvars.example`** - Plantilla de configuración segura:
 
-   - Ejemplo de configuración de credenciales
-   - Valores recomendados para el proyecto LTI
-   - Documentación sobre dónde obtener API keys
+    - Ejemplo de configuración de credenciales
+    - Valores recomendados para el proyecto LTI
+    - Documentación sobre dónde obtener API keys
 
-3. **`.gitignore`** - Seguridad de credenciales:
-   - Exclusión de archivos `terraform.tfvars` con credenciales reales
-   - Protección de estados de Terraform sensibles
+3.  **`.gitignore`** - Seguridad de credenciales:
+    - Exclusión de archivos `terraform.tfvars` con credenciales reales
+    - Protección de estados de Terraform sensibles
 
 #### Características de Seguridad Implementadas
 
-- **Variables Sensibles**: `datadog_api_key` y `datadog_app_key` marcadas como `sensitive = true`
-- **Validaciones**: Verificación de que las API keys no estén vacías
-- **Exclusiones Git**: Archivos con credenciales excluidos del control de versiones
-- **External ID**: Configuración para role seguro AWS-Datadog
+- **Variables Sensibles**: `datadog_api_key` y `datadog_app_key` marcadas como `sensitive = true`.
+- **Validaciones**: Verificación de que las API keys no estén vacías.
+- **Exclusiones Git**: Archivos con credenciales excluidos del control de versiones.
+- **External ID**: Configuración para role seguro AWS-Datadog.
 
 #### Variables Principales Configuradas
 
 ```hcl
 # Credenciales (obligatorias)
-datadog_api_key                # API Key de Datadog
-datadog_app_key               # Application Key de Datadog
+variable "datadog_api_key" { ... }
+variable "datadog_app_key" { ... }
 
 # Configuración del agente
-datadog_agent_version         # Versión del agente (default: "latest")
-datadog_enable_logs          # Habilitar logs (default: true)
-datadog_enable_apm           # Habilitar APM (default: true)
+variable "datadog_agent_version" { ... }        # Versión del agente (default: "latest")
+variable "datadog_enable_logs" { ... }         # Habilitar logs (default: true)
+variable "datadog_enable_apm" { ... }          # Habilitar APM (default: true)
 
 # Umbrales de alerta para LTI
-cpu_threshold_warning        # CPU warning (default: 70%)
-cpu_threshold_critical       # CPU crítico (default: 85%)
-memory_threshold_warning     # Memoria warning (default: 80%)
-memory_threshold_critical    # Memoria crítico (default: 90%)
+variable "cpu_threshold_warning" { ... }       # CPU warning (default: 70%)
+variable "cpu_threshold_critical" { ... }      # CPU crítico (default: 85%)
+variable "memory_threshold_warning" { ... }    # Memoria warning (default: 80%)
+variable "memory_threshold_critical" { ... }   # Memoria crítico (default: 90%)
 
 # Servicios monitoreados
-monitor_backend_service      # Nombre servicio backend: "lti-backend"
-monitor_frontend_service     # Nombre servicio frontend: "lti-frontend"
+variable "monitor_backend_service" { ... }     # Nombre servicio backend: "lti-backend"
+variable "monitor_frontend_service" { ... }    # Nombre servicio frontend: "lti-frontend"
 ```
 
 ### Convenciones del Proyecto
 
-- **Naming**: Mantiene convención `lti-project-*` para consistencia
-- **Tagging**: Tags específicos para backend (`service:lti-backend`) y frontend (`service:lti-frontend`)
-- **Estructura**: Código modular y documentado por funcionalidad
+- **Naming**: Mantiene convención `lti-project-*` para consistencia.
+- **Tagging**: Tags específicos para backend (`service:lti-backend`) y frontend (`service:lti-frontend`).
+- **Estructura**: Código modular y documentado por funcionalidad.
 
 ### Configuración Inicial Requerida
 
 Antes de continuar con los siguientes pasos, necesitas:
 
-1. **Obtener credenciales de Datadog**:
+1.  **Obtener credenciales de Datadog**:
 
-   ```bash
-   # Visita: https://app.datadoghq.com/organization-settings/api-keys
-   # Obtén: API Key y Application Key
-   ```
+    - Visita: [Datadog API Keys](https://app.datadoghq.com/organization-settings/api-keys)
+    - Obtén: API Key y Application Key
 
-2. **Configurar variables**:
+2.  **Configurar variables**:
 
-   ```bash
-   cd tf/
-   cp terraform.tfvars.example terraform.tfvars
-   # Editar terraform.tfvars con tus credenciales reales
-   ```
+    ```bash
+    cd tf/
+    cp terraform.tfvars.example terraform.tfvars
+    # Edita terraform.tfvars con tus credenciales reales
+    ```
 
-3. **Verificar configuración**:
-   ```bash
-   terraform validate
-   terraform plan
-   ```
+3.  **Verificar configuración**:
+
+    ```bash
+    cd tf/
+    terraform validate
+    terraform plan
+    ```
 
 ### Servicios AWS Monitoreados
 
-- **EC2**: Métricas de instancias backend y frontend
-- **CloudWatch**: Logs y métricas del sistema
-- **S3**: Métricas del bucket de código
-- **IAM**: Monitorización de roles y políticas
+- **EC2**: Métricas de instancias backend y frontend.
+- **CloudWatch**: Logs y métricas del sistema.
+- **S3**: Métricas del bucket de código.
+- **IAM**: Monitorización de roles y políticas.
 
 ### ✅ Pasos Completados
 
@@ -305,41 +308,73 @@ Se configuró el proveedor de Datadog v3.40+ en `tf/provider.tf` con autenticaci
 
 Se implementó la integración completa en `tf/datadog.tf` incluyendo:
 
-- **Política IAM**: Permisos para CloudWatch, EC2, S3, IAM (solo lectura)
-- **Role IAM**: Role con External ID que Datadog puede asumir
-- **Dashboard**: Panel de control con métricas de CPU y memoria
-- **Outputs**: ARN del role, External ID y URLs para configuración manual
+- **Política IAM**: Permisos para CloudWatch, EC2, S3, IAM (solo lectura).
+- **Role IAM**: Role con External ID que Datadog puede asumir.
+- **Dashboard**: Panel de control con métricas de CPU y memoria.
+- **Outputs**: ARN del role, External ID y URLs para configuración manual.
 
 **Configuración Manual Requerida:**
 
-1. En Datadog → Integrations → AWS → Add AWS Account
-2. Usar Role ARN: `(output de terraform apply)`
-3. Usar External ID: `(output de terraform apply)`
-4. Account ID: `(output de terraform apply)`
+1.  En Datadog → Integrations → AWS → Add AWS Account.
+2.  Usar Role ARN: `(output de terraform apply)`.
+3.  Usar External ID: `(output de terraform apply)`.
+4.  Account ID: `(output de terraform apply)`.
 
 #### Paso 4: Instalación de Agentes Datadog ✅
 
 Se configuró la instalación automática de agentes Datadog en ambas instancias EC2:
 
 - **Scripts Modificados**:
-  - `tf/scripts/backend_user_data.sh` - Instalación para servidor backend
-  - `tf/scripts/frontend_user_data.sh` - Instalación para servidor frontend
-- **Configuración de Agentes**: Tags específicos por servicio (backend/frontend)
-- **Integración Docker**: Labels para contenedores con identificación de Datadog
-- **Variables EC2**: Todas las credenciales y configuraciones pasadas via templatefile
+  - `tf/scripts/backend_user_data.sh` - Instalación para servidor backend.
+  - `tf/scripts/frontend_user_data.sh` - Instalación para servidor frontend.
+- **Configuración de Agentes**: Tags específicos por servicio (backend/frontend).
+- **Integración Docker**: Labels para contenedores con identificación de Datadog.
+- **Variables EC2**: Todas las credenciales y configuraciones pasadas via `templatefile`.
 
-**Características Implementadas:**
+**Características Implementadas en Paso 4:**
 
-- Instalación automática del agente al lanzar instancias
-- Tags específicos por rol (backend/frontend)
-- Habilitación de logs si está configurado
-- Labels de Docker para mejor identificación en Datadog
-- Reinicio automático de contenedores con `--restart unless-stopped`
+- Instalación automática del agente al lanzar instancias.
+- Tags específicos por rol (backend/frontend).
+- Habilitación de logs si está configurado.
+- Labels de Docker para mejor identificación en Datadog.
+- Reinicio automático de contenedores con `--restart unless-stopped`.
+
+#### Paso 5: Configuración de Logs y APM ✅
+
+Se implementó la configuración automática de logs y APM sin modificar el código de las aplicaciones:
+
+**Configuración de Logs Automática:**
+
+- **Logs de contenedores Docker**: Recolección automática de logs de contenedores `lti-backend` y `lti-frontend`.
+- **Logs de archivos**: Configuración para logs en `/var/log/lti/backend/` y `/var/log/lti/frontend/`.
+- **Logs del sistema**: Monitoreo de Docker y Nginx (si está presente).
+- **Tags específicos**: Cada log incluye tags de proyecto, ambiente, equipo y componente.
+
+**Configuración de APM para Backend:**
+
+- **APM automático**: Habilitado en el agente Datadog para el backend Node.js/Express.
+- **Variables de entorno**: Configuración automática de `DD_SERVICE`, `DD_ENV`, `DD_VERSION`.
+- **Socket Unix**: Comunicación eficiente entre aplicación y agente via socket.
+- **Sin cambios de código**: APM funciona automáticamente sin modificar la aplicación.
+
+**Archivos Configurados en Paso 5:**
+
+- `tf/scripts/backend_user_data.sh` - Configuración completa de logs y APM para backend.
+- `tf/scripts/frontend_user_data.sh` - Configuración de logs para frontend.
+- `tf/scripts/datadog_agent_config.yaml` - Configuración base del agente.
+- `tf/datadog.tf` - Dashboard actualizado con widgets de logs.
+
+**Características Implementadas en Paso 5:**
+
+- Directorios de logs creados automáticamente (`/var/log/lti/backend`, `/var/log/lti/frontend`).
+- Configuración específica por servicio en `/etc/datadog-agent/conf.d/`.
+- Labels de Docker para identificación automática en Datadog.
+- Variables de entorno para APM configuradas en contenedores.
+- Reinicio automático de agente después de configuración.
 
 ### Próximos Pasos de Implementación
 
-- [ ] **Paso 5**: Configurar logs y APM específicos del proyecto LTI
-- [ ] **Paso 6**: Documentar configuración final y verificar monitorización
+- [ ] **Paso 6**: Documentar configuración final y verificar monitorización completa.
 
 ### Comandos Útiles
 
@@ -362,18 +397,18 @@ terraform show
 
 ⚠️ **Seguridad**:
 
-- Las API keys de Datadog son **OBLIGATORIAS** y deben configurarse antes de continuar
-- El External ID debe ser único y compartido solo con Datadog
-- Nunca commit archivos `terraform.tfvars` con credenciales reales
+- Las API keys de Datadog son **OBLIGATORIAS** y deben configurarse antes de continuar.
+- El External ID debe ser único y compartido solo con Datadog.
+- Nunca commit archivos `terraform.tfvars` con credenciales reales.
 
 🔧 **Configuración**:
 
-- Los umbrales de alerta pueden ajustarse según necesidades específicas del LTI
-- La configuración actual soporta monitorización completa de la infraestructura AWS
-- Tags específicos permiten filtrado granular en Datadog
+- Los umbrales de alerta pueden ajustarse según necesidades específicas del LTI.
+- La configuración actual soporta monitorización completa de la infraestructura AWS.
+- Tags específicos permiten filtrado granular en Datadog.
 
 📝 **Documentación**:
 
-- Todos los cambios se documentan en `prompts/datadog-aws-prompts.md`
-- Cada paso incluye verificación y validación
-- Se mantiene historial de implementación para referencia futura
+- Todos los cambios se documentan en `README.md` (este archivo).
+- Cada paso incluye verificación y validación.
+- Se mantiene historial de implementación para referencia futura.

@@ -13,10 +13,11 @@ data "aws_region" "current" {}
 # CREAR POLÍTICA IAM PARA DATADOG
 # ------------------------------------------------------------------------------
 
-# Política IAM que permite a Datadog leer métricas de CloudWatch y otros servicios
+# Política IAM para la integración AWS-Datadog
 resource "aws_iam_policy" "datadog_aws_integration" {
-  name        = "${var.project_name}-datadog-integration-policy"
-  description = "Política IAM para integración de Datadog con AWS"
+  name        = "${var.project_name}-datadog-integration"
+  path        = "/"
+  description = "IAM policy for Datadog AWS integration for LTI project"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -24,176 +25,248 @@ resource "aws_iam_policy" "datadog_aws_integration" {
       {
         Effect = "Allow"
         Action = [
-          "cloudwatch:GetMetricStatistics",
-          "cloudwatch:ListMetrics",
-          "ec2:DescribeInstances",
-          "ec2:DescribeInstanceStatus",
-          "ec2:DescribeImages",
-          "ec2:DescribeSnapshots",
-          "ec2:DescribeVolumes",
-          "ec2:DescribeSecurityGroups",
-          "s3:GetBucketLogging",
+          "cloudwatch:List*",
+          "cloudwatch:Get*",
+          "cloudwatch:Describe*",
+          "ec2:Describe*",
+          "ec2:Get*",
           "s3:GetBucketLocation",
-          "s3:GetBucketNotification",
           "s3:GetBucketVersioning",
-          "s3:ListAllMyBuckets",
           "s3:ListBucket",
-          "iam:ListAccountAliases",
-          "iam:ListRole",
-          "iam:ListRoles"
+          "s3:GetBucketTagging",
+          "iam:ListRoles",
+          "iam:ListPolicies"
         ]
         Resource = "*"
       }
     ]
   })
 
-  tags = merge(var.datadog_tags, {
-    Name = "${var.project_name}-datadog-policy"
-  })
+  tags = var.datadog_tags
 }
 
 # ------------------------------------------------------------------------------
 # CREAR ROLE IAM PARA DATADOG
 # ------------------------------------------------------------------------------
 
-# Role IAM que Datadog puede asumir para acceder a AWS
+# Role IAM que Datadog puede asumir
 resource "aws_iam_role" "datadog_aws_integration" {
-  name        = "${var.project_name}-datadog-integration-role"
-  description = "Role IAM para integración de Datadog con AWS"
+  name = "${var.project_name}-datadog-integration"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
+        Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::464622532012:root" # Datadog AWS Account
+          AWS = "arn:aws:iam::464622532012:root"
         }
-        Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = var.datadog_external_id
+            "sts:ExternalId" = var.datadog_external_id != "" ? var.datadog_external_id : random_password.external_id.result
           }
         }
       }
     ]
   })
 
-  tags = merge(var.datadog_tags, {
-    Name = "${var.project_name}-datadog-role"
-  })
+  tags = var.datadog_tags
 }
 
-# Adjuntar la política al role
+# Attachment del policy al role
 resource "aws_iam_role_policy_attachment" "datadog_aws_integration" {
   role       = aws_iam_role.datadog_aws_integration.name
   policy_arn = aws_iam_policy.datadog_aws_integration.arn
+}
+
+# External ID aleatorio si no se proporciona uno
+resource "random_password" "external_id" {
+  length  = 32
+  special = true
 }
 
 # ------------------------------------------------------------------------------
 # DASHBOARD DE DATADOG PARA EL PROYECTO LTI
 # ------------------------------------------------------------------------------
 
-resource "datadog_dashboard" "lti_monitoring" {
-  title       = "Sistema de Seguimiento de Talento (LTI) - Dashboard Principal"
-  description = "Dashboard completo para monitorización del Sistema de Seguimiento de Talento"
-  layout_type = "ordered"
+# Dashboard principal del sistema LTI
+resource "datadog_dashboard" "lti_system_overview" {
+  title        = "LTI - Sistema de Seguimiento de Talento"
+  description  = "Dashboard principal para monitorizar la infraestructura y aplicaciones del Sistema LTI"
+  layout_type  = "ordered"
+  is_read_only = false
 
-  # Widget - Resumen del sistema
   widget {
-    note_definition {
-      content          = "# 📊 Sistema de Seguimiento de Talento (LTI)\n\n**Ambiente**: ${var.environment}\n**Región AWS**: ${var.aws_region}\n**Proyecto**: ${var.project_name}\n\n---\n\n## 🎯 Servicios Monitoreados\n- **Backend**: Node.js/Express con Prisma\n- **Frontend**: React Application\n\n## 📈 Métricas Disponibles\n- CPU y Memoria de servidores EC2\n- Métricas de AWS CloudWatch\n- Logs de aplicación\n\n**Configuración manual requerida**: \nPara completar la integración, configure manualmente la conexión AWS-Datadog en la consola de Datadog usando el Role ARN generado."
+    group_definition {
+      title            = "Infraestructura EC2"
+      layout_type      = "ordered"
       background_color = "blue"
-      font_size        = "14"
-      text_align       = "left"
-      show_tick        = false
-      tick_edge        = "left"
-      tick_pos         = "50%"
-    }
-  }
 
-  # Widget - CPU Usage Backend
-  widget {
-    timeseries_definition {
-      title       = "🖥️ CPU Usage - Backend Servers"
-      show_legend = true
-      legend_size = "small"
-
-      request {
-        q            = "avg:aws.ec2.cpuutilization{name:*backend*} by {host}"
-        display_type = "line"
-        style {
-          palette    = "dog_classic"
-          line_type  = "solid"
-          line_width = "normal"
+      widget {
+        timeseries_definition {
+          title = "CPU Utilization - LTI Instances"
+          request {
+            q            = "avg:aws.ec2.cpuutilization{project:${var.project_name}}"
+            display_type = "line"
+            style {
+              palette = "dog_classic"
+            }
+          }
+          yaxis {
+            min = "0"
+            max = "100"
+          }
         }
       }
 
-      yaxis {
-        min   = "0"
-        max   = "100"
-        scale = "linear"
-        label = "CPU %"
+      widget {
+        timeseries_definition {
+          title = "Memory Utilization - LTI Instances"
+          request {
+            q            = "avg:system.mem.pct_usable{project:${var.project_name}} by {host}"
+            display_type = "line"
+            style {
+              palette = "cool"
+            }
+          }
+        }
       }
     }
   }
 
-  # Widget - Memory Usage Backend
   widget {
-    timeseries_definition {
-      title       = "💾 Memory Usage - Backend Servers"
-      show_legend = true
-      legend_size = "small"
+    group_definition {
+      title            = "Aplicaciones LTI"
+      layout_type      = "ordered"
+      background_color = "green"
 
-      request {
-        q            = "avg:system.mem.pct_usable{name:*backend*} by {host}"
-        display_type = "line"
-        style {
-          palette    = "purple"
-          line_type  = "solid"
-          line_width = "normal"
+      widget {
+        query_value_definition {
+          title = "Backend Service Status"
+          request {
+            q          = "avg:datadog.agent.up{service:${var.monitor_backend_service}}"
+            aggregator = "avg"
+          }
+          autoscale = true
+          precision = 0
         }
       }
 
-      yaxis {
-        min   = "0"
-        max   = "100"
-        scale = "linear"
-        label = "Memory %"
+      widget {
+        query_value_definition {
+          title = "Frontend Service Status"
+          request {
+            q          = "avg:datadog.agent.up{service:${var.monitor_frontend_service}}"
+            aggregator = "avg"
+          }
+          autoscale = true
+          precision = 0
+        }
       }
     }
   }
 
-  # Tags del dashboard
-  tags = [
-    "project:${var.project_name}",
-    "environment:${var.environment}",
-    "team:infrastructure",
-    "managed-by:terraform"
-  ]
+  widget {
+    group_definition {
+      title            = "Logs de Aplicaciones"
+      layout_type      = "ordered"
+      background_color = "orange"
+
+      widget {
+        log_stream_definition {
+          title = "Logs recientes del Backend LTI"
+          query = "service:${var.monitor_backend_service}"
+          sort {
+            column = "time"
+            order  = "desc"
+          }
+          columns = ["core_host", "core_service", "message"]
+        }
+      }
+
+      widget {
+        log_stream_definition {
+          title = "Logs recientes del Frontend LTI"
+          query = "service:${var.monitor_frontend_service}"
+          sort {
+            column = "time"
+            order  = "desc"
+          }
+          columns = ["core_host", "core_service", "message"]
+        }
+      }
+    }
+  }
+
+  tags = [for k, v in var.datadog_tags : "${k}:${v}"]
+}
+
+# Monitor de CPU crítico
+resource "datadog_monitor" "lti_cpu_critical" {
+  name    = "LTI - CPU crítico en instancias"
+  type    = "metric alert"
+  message = "La CPU en las instancias LTI está por encima del ${var.cpu_threshold_critical}%. @${join(" @", var.alert_email_recipients)}"
+
+  query = "avg(last_5m):avg:aws.ec2.cpuutilization{project:${var.project_name}} > ${var.cpu_threshold_critical}"
+
+  monitor_thresholds {
+    warning  = var.cpu_threshold_warning
+    critical = var.cpu_threshold_critical
+  }
+
+  notify_no_data      = true
+  renotify_interval   = 60
+  timeout_h           = 0
+  include_tags        = true
+  require_full_window = false
+
+  tags = [for k, v in var.datadog_tags : "${k}:${v}"]
+}
+
+# Monitor de memoria crítica
+resource "datadog_monitor" "lti_memory_critical" {
+  name    = "LTI - Memoria crítica en instancias"
+  type    = "metric alert"
+  message = "La memoria en las instancias LTI está por encima del ${var.memory_threshold_critical}%. @${join(" @", var.alert_email_recipients)}"
+
+  query = "avg(last_5m):avg:system.mem.pct_usable{project:${var.project_name}} < ${100 - var.memory_threshold_critical}"
+
+  monitor_thresholds {
+    warning  = 100 - var.memory_threshold_warning
+    critical = 100 - var.memory_threshold_critical
+  }
+
+  notify_no_data      = true
+  renotify_interval   = 60
+  timeout_h           = 0
+  include_tags        = true
+  require_full_window = false
+
+  tags = [for k, v in var.datadog_tags : "${k}:${v}"]
 }
 
 # ------------------------------------------------------------------------------
 # OUTPUTS INFORMATIVOS
 # ------------------------------------------------------------------------------
 
-output "datadog_aws_role_arn" {
-  description = "ARN del role IAM creado para Datadog - Usar este ARN para configurar la integración manualmente en Datadog"
+output "datadog_role_arn" {
   value       = aws_iam_role.datadog_aws_integration.arn
-}
-
-output "datadog_dashboard_url" {
-  description = "URL del dashboard principal de LTI en Datadog"
-  value       = "https://app.datadoghq.com/dashboard/${datadog_dashboard.lti_monitoring.id}"
+  description = "ARN del role IAM para la integración AWS-Datadog"
 }
 
 output "datadog_external_id" {
-  description = "External ID para usar en la configuración manual de la integración Datadog-AWS"
-  value       = var.datadog_external_id
+  value       = var.datadog_external_id != "" ? var.datadog_external_id : random_password.external_id.result
+  description = "External ID para la integración AWS-Datadog"
   sensitive   = true
 }
 
+output "datadog_dashboard_url" {
+  value       = "https://app.${var.datadog_site}/dashboard/${datadog_dashboard.lti_system_overview.id}"
+  description = "URL del dashboard principal de LTI en Datadog"
+}
+
 output "aws_account_id" {
-  description = "Account ID de AWS para configurar en Datadog"
   value       = data.aws_caller_identity.current.account_id
+  description = "ID de la cuenta AWS actual"
 }

@@ -1,0 +1,101 @@
+# Configuración del agente Datadog para el proyecto LTI
+# Archivo: /etc/datadog-agent/conf.d/lti.yaml
+
+logs_enabled: true
+apm_config:
+  enabled: true
+  apm_dd_url: https://trace.agent.${datadog_site}
+  receiver_port: 8126
+
+# Configuración de logs para aplicaciones LTI
+logs:
+  # Logs del backend Node.js/Express
+  - type: file
+    path: "/var/log/lti/backend/*.log"
+    service: "${backend_service}"
+    source: nodejs
+    sourcecategory: lti-backend
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:backend"
+      - "component:api"
+
+  # Logs del contenedor backend
+  - type: docker
+    image: lti-backend
+    service: "${backend_service}"
+    source: nodejs
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:backend"
+      - "component:api"
+
+  # Logs del frontend React
+  - type: file
+    path: "/var/log/lti/frontend/*.log"
+    service: "${frontend_service}"
+    source: javascript
+    sourcecategory: lti-frontend
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:frontend"
+      - "component:webapp"
+
+  # Logs del contenedor frontend
+  - type: docker
+    image: lti-frontend
+    service: "${frontend_service}"
+    source: javascript
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:frontend"
+      - "component:webapp"
+
+  # Logs del sistema y Docker
+  - type: file
+    path: "/var/log/docker.log"
+    service: "docker"
+    source: docker
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+
+  # Logs de nginx (si está presente)
+  - type: file
+    path: "/var/log/nginx/access.log"
+    service: "nginx"
+    source: nginx
+    sourcecategory: http_web_access
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+
+  - type: file
+    path: "/var/log/nginx/error.log"
+    service: "nginx"
+    source: nginx
+    sourcecategory: http_web_access
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+
+# Configuración de métricas personalizadas
+dogstatsd_config:
+  enabled: true
+  bind_host: localhost
+  port: 8125
+
+# Configuración de procesos monitoreados
+process_config:
+  enabled: "true"
+
+# Tags globales para todas las métricas
+tags:
+  - "project:${project_name}"
+  - "environment:${environment}"
+  - "managed_by:terraform"
+  - "service:lti-system" 

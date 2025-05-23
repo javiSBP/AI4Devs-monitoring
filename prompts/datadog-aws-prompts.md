@@ -162,3 +162,15 @@ Continuamos con el paso 3
 # Paso 4
 
 A por el paso 4
+
+# Paso 5
+
+Continuamos con el paso 5
+
+# Info del paso 6
+
+qué es lo que vas a hacer en el paso 6 exactamente? explícamelo antes de nada
+
+# Variables de AWS
+
+creo que antes de proceder, falta configurar las variables de AWS en local para ejecutar terraform plan y apply

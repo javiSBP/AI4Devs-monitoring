@@ -23,16 +23,89 @@ DD_API_KEY="${datadog_api_key}" DD_SITE="${datadog_site}" bash -c "$(curl -L htt
 # Configurar tags básicos para el agente
 sudo sed -i "s/# tags:/tags:\n  - project:${project_name}\n  - environment:${environment}\n  - service:${monitor_frontend_service}\n  - role:frontend/" /etc/datadog-agent/datadog.yaml
 
+# Crear directorio para logs de aplicaciones LTI
+sudo mkdir -p /var/log/lti/frontend
+sudo chmod 755 /var/log/lti/frontend
+
 # Habilitar logs si está configurado
 if [ "${datadog_enable_logs}" = "true" ]; then
     sudo sed -i 's/# logs_enabled: false/logs_enabled: true/' /etc/datadog-agent/datadog.yaml
 fi
 
+# Configurar recolección de logs específicos para el frontend
+sudo tee /etc/datadog-agent/conf.d/lti-frontend.yaml > /dev/null << EOF
+# Configuración específica del frontend LTI
+init_config:
+
+instances:
+  - name: lti-frontend
+
+logs:
+  # Logs del contenedor frontend
+  - type: docker
+    image: lti-frontend
+    service: ${monitor_frontend_service}
+    source: javascript
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:frontend"
+      - "component:webapp"
+      - "host:frontend-server"
+
+  # Logs de archivos del frontend (si existen)
+  - type: file
+    path: "/var/log/lti/frontend/*.log"
+    service: ${monitor_frontend_service}
+    source: javascript
+    sourcecategory: lti-frontend
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:frontend"
+      - "component:webapp"
+      - "host:frontend-server"
+
+  # Logs de Docker para este contenedor
+  - type: docker
+    name: lti-frontend-container
+    service: ${monitor_frontend_service}
+    source: docker
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:frontend"
+      - "component:webapp"
+
+  # Logs de Nginx (si está presente)
+  - type: file
+    path: "/var/log/nginx/access.log"
+    service: nginx
+    source: nginx
+    sourcecategory: http_web_access
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:frontend"
+      - "component:webserver"
+
+  - type: file
+    path: "/var/log/nginx/error.log"
+    service: nginx
+    source: nginx
+    sourcecategory: http_web_access
+    tags:
+      - "project:${project_name}"
+      - "environment:${environment}"
+      - "team:frontend"
+      - "component:webserver"
+EOF
+
 # Reiniciar y habilitar el agente
 sudo systemctl restart datadog-agent
 sudo systemctl enable datadog-agent
 
-echo "Datadog agent configured for LTI Frontend"
+echo "Datadog agent configured for LTI Frontend with logs"
 
 # ==============================================================================
 # DESPLIEGUE DE LA APLICACIÓN FRONTEND
@@ -51,14 +124,19 @@ sudo docker build -t lti-frontend .
 # Ejecutar el contenedor Docker con labels para Datadog
 sudo docker run -d \
     --name lti-frontend-container \
-    -p 3000:3000 \
+    -p 80:3000 \
+    -e REACT_APP_ENV=${environment} \
+    -e REACT_APP_VERSION=1.0.0 \
     --label "com.datadoghq.tags.service=${monitor_frontend_service}" \
     --label "com.datadoghq.tags.env=${environment}" \
     --label "com.datadoghq.tags.project=${project_name}" \
+    --label "com.datadoghq.tags.team=frontend" \
+    --label "com.datadoghq.tags.component=webapp" \
+    -v /var/log/lti/frontend:/var/log/app \
     --restart unless-stopped \
     lti-frontend
 
-echo "LTI Frontend deployed successfully with Datadog monitoring"
+echo "LTI Frontend deployed successfully with Datadog monitoring and logs"
 
 # Timestamp to force update
 echo "Deployment completed at: $(date)"
