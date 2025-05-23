@@ -372,9 +372,190 @@ Se implementó la configuración automática de logs y APM sin modificar el cód
 - Variables de entorno para APM configuradas en contenedores.
 - Reinicio automático de agente después de configuración.
 
-### Próximos Pasos de Implementación
+#### Paso 6: Documentación Final y Verificación ✅
 
-- [ ] **Paso 6**: Documentar configuración final y verificar monitorización completa.
+**Configuración de Credenciales AWS Completada:**
+
+La configuración está lista para despliegue. Asegúrate de tener configuradas las variables de entorno de AWS en tu terminal:
+
+```powershell
+$Env:AWS_ACCESS_KEY_ID = "tu_access_key_id"
+$Env:AWS_SECRET_ACCESS_KEY = "tu_secret_access_key"
+$Env:AWS_DEFAULT_REGION = "us-east-1"  # O tu región preferida
+```
+
+### 🚀 Despliegue de la Infraestructura
+
+#### Pasos para Desplegar
+
+1. **Configurar Credenciales de Datadog**:
+
+   ```bash
+   cd tf/
+   cp terraform.tfvars.example terraform.tfvars
+   # Edita terraform.tfvars con tus API keys de Datadog
+   ```
+
+2. **Verificar Configuración**:
+
+   ```bash
+   terraform validate
+   terraform plan
+   ```
+
+3. **Desplegar Infraestructura**:
+   ```bash
+   terraform apply
+   # Escribe 'yes' cuando se te solicite confirmación
+   ```
+
+#### Outputs Importantes de Terraform
+
+Una vez ejecutado `terraform apply`, obtendrás los siguientes outputs importantes:
+
+- **`datadog_role_arn`**: ARN del rol IAM que Datadog utilizará
+- **`datadog_external_id`**: ID externo para la integración segura
+- **`datadog_dashboard_url`**: URL directa al dashboard principal del sistema LTI
+- **`aws_account_id`**: ID de tu cuenta AWS para configuración en Datadog
+
+### 🔍 Verificación Post-Despliegue
+
+#### 1. Verificar Integración AWS-Datadog
+
+**En la Consola de Datadog:**
+
+1. Ve a **Integrations** → **AWS**
+2. Haz clic en **Add AWS Account**
+3. Configura manualmente la integración usando los outputs de Terraform:
+   - **Role ARN**: Usa el valor de `datadog_role_arn`
+   - **External ID**: Usa el valor de `datadog_external_id`
+   - **Account ID**: Usa el valor de `aws_account_id`
+4. Selecciona los servicios a monitorear: EC2, CloudWatch, S3, IAM
+
+#### 2. Verificar Instancias EC2 y Agentes
+
+**En Datadog → Infrastructure → Host Map:**
+
+- ✅ Deberías ver 2 hosts:
+  - `lti-project-backend` (tags: `service:lti-backend`, `role:backend`)
+  - `lti-project-frontend` (tags: `service:lti-frontend`, `role:frontend`)
+- ✅ Ambos hosts deben aparecer como **activos** (verde)
+- ✅ Cada host debe mostrar métricas de sistema (CPU, memoria, disco)
+
+**Comando de Diagnóstico en Instancias EC2** (si tienes acceso SSH):
+
+```bash
+sudo datadog-agent status
+# Debe mostrar: "Agent (v7.x.x)" y estado "OK"
+```
+
+#### 3. Verificar Métricas y Dashboard
+
+**En el Dashboard Principal:**
+
+1. Ve a la URL proporcionada en `datadog_dashboard_url`
+2. O navega a **Dashboards** y busca **"LTI - Sistema de Seguimiento de Talento"**
+
+**Widgets que debes verificar:**
+
+- ✅ **CPU Utilization**: Gráficos con datos de ambas instancias
+- ✅ **Memory Utilization**: Métricas de memoria de backend y frontend
+- ✅ **Service Status**: Widgets mostrando estado UP de los servicios
+- ✅ **Logs Stream**: Logs recientes de aplicaciones y sistema
+
+#### 4. Verificar Logs
+
+**En Datadog → Logs → Explorer:**
+
+- ✅ Filtra por `service:lti-backend` - Deberías ver:
+  - Logs del contenedor Docker `lti-backend`
+  - Logs del agente Datadog
+  - Logs del sistema de la instancia backend
+- ✅ Filtra por `service:lti-frontend` - Deberías ver:
+  - Logs del contenedor Docker `lti-frontend`
+  - Logs del agente Datadog
+  - Logs del sistema de la instancia frontend
+- ✅ Filtra por `project:lti-talent-tracking` - Todos los logs del proyecto
+
+#### 5. Verificar APM (Application Performance Monitoring)
+
+**En Datadog → APM → Services:**
+
+- ✅ Deberías ver el servicio `lti-backend` listado
+- ✅ Al hacer clic en el servicio, deberías ver:
+  - Trazas de peticiones HTTP
+  - Métricas de latencia y throughput
+  - Endpoints de la API
+  - Errores si los hay
+
+**Para generar trazas**: Una vez desplegada la aplicación, realiza peticiones a los endpoints:
+
+```bash
+# Ejemplo de petición para generar trazas
+curl http://[IP-PUBLICA-BACKEND]:8080/
+curl http://[IP-PUBLICA-FRONTEND]/
+```
+
+#### 6. Verificar Alertas y Monitores
+
+**En Datadog → Monitors → Manage Monitors:**
+
+- ✅ **"LTI - CPU crítico en instancias"**: Monitor configurado con umbrales
+- ✅ **"LTI - Memoria crítica en instancias"**: Monitor de memoria
+- ✅ Ambos monitores deben estar en estado **OK** si el sistema funciona correctamente
+
+### 🔧 Troubleshooting Común
+
+#### Si las instancias no aparecen en Datadog:
+
+1. **Verificar Security Groups**: Asegúrate de que el puerto 443 (HTTPS) está abierto hacia Internet para que el agente pueda comunicarse con Datadog
+2. **Verificar API Keys**: Confirma que `datadog_api_key` en `terraform.tfvars` es correcta
+3. **Verificar User Data**: Los logs de User Data se encuentran en `/var/log/cloud-init-output.log` en las instancias EC2
+
+#### Si no llegan logs:
+
+1. **Verificar permisos**: El agente Datadog debe tener permisos de lectura en los directorios de logs
+2. **Verificar configuración**: Revisa `/etc/datadog-agent/conf.d/lti-*.yaml` en las instancias
+3. **Reiniciar agente**: `sudo systemctl restart datadog-agent`
+
+#### Si APM no funciona:
+
+1. **Verificar variables de entorno**: Las variables `DD_*` deben estar configuradas en los contenedores
+2. **Verificar socket Unix**: El path `/var/run/datadog/apm.socket` debe ser accesible
+3. **Verificar puerto APM**: El puerto 8126 debe estar abierto para trazas
+
+### 📋 Checklist Final de Verificación
+
+- [ ] Credenciales AWS configuradas y `terraform apply` ejecutado exitosamente
+- [ ] Integración AWS-Datadog configurada manualmente en consola
+- [ ] 2 instancias EC2 visibles en Host Map de Datadog
+- [ ] Dashboard "LTI - Sistema de Seguimiento de Talento" muestra datos
+- [ ] Logs visibles en Log Explorer con tags correctos
+- [ ] Servicio `lti-backend` visible en APM después de generar tráfico
+- [ ] Monitores de CPU y memoria configurados y funcionando
+- [ ] Aplicaciones accesibles desde Internet y funcionando
+
+### ✅ Estado Final de Implementación
+
+**¡Implementación de Monitorización Datadog Completada!**
+
+- ✅ **Paso 1**: Configuración de Variables Terraform para Datadog
+- ✅ **Paso 2**: Configuración del Proveedor Datadog
+- ✅ **Paso 3**: Integración AWS-Datadog (Roles IAM, Políticas, Dashboard)
+- ✅ **Paso 4**: Instalación de Agentes Datadog en Instancias EC2
+- ✅ **Paso 5**: Configuración de Logs y APM específicos del proyecto LTI
+- ✅ **Paso 6**: Documentación Final y Verificación de Monitorización
+
+**🎉 El Sistema de Seguimiento de Talento (LTI) ahora cuenta con monitorización completa con Datadog, incluyendo:**
+
+- 📊 **Métricas de infraestructura** (CPU, memoria, disco, red)
+- 📝 **Logs centralizados** de aplicaciones y sistema
+- 🔍 **APM y trazas** de la aplicación backend Node.js
+- 🚨 **Alertas configurables** basadas en umbrales
+- 📈 **Dashboard personalizado** para visualización integral
+- 🏷️ **Tags organizados** para fácil filtrado y gestión
+
+La configuración es completamente automatizada via Terraform y no requiere modificaciones en el código de las aplicaciones.
 
 ### Comandos Útiles
 
